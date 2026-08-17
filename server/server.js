@@ -344,16 +344,24 @@ on('POST', '/api/search/ai', async (req, res) => {
   const query = (body.query || '').trim();
   if (!query) return sendJson(res, 400, { error: 'A search query is required.' });
   const knownSkills = db.prepare('SELECT name FROM skills_taxonomy').all().map(r => r.name);
+
+  let skills, usedFallback = false, note = null;
   try {
-    const skills = await ollama.parseStaffingQuery(query, knownSkills);
-    const ranked = scoreEmployees(getAllEmployeesWithSkills(), skills);
-    sendJson(res, 200, { parsedSkills: skills, results: ranked });
+    skills = await ollama.parseStaffingQuery(query, knownSkills);
   } catch (e) {
-    sendJson(res, 503, {
-      error: 'AI search is unavailable — is Ollama running locally? (ollama serve, with a model pulled via `ollama pull llama3.2`)',
-      detail: String(e.message || e)
+    usedFallback = true;
+    note = 'Ollama isn\u2019t reachable, so this used simple keyword matching instead (matches taxonomy skill names + seniority words like "senior"/"junior" mentioned in your query). Install Ollama for smarter parsing, or just use the manual filter below.';
+    skills = ollama.parseStaffingQueryFallback(query, knownSkills);
+  }
+
+  if (skills.length === 0) {
+    return sendJson(res, 200, {
+      parsedSkills: [], results: [], usedFallback,
+      note: note || 'Nothing recognizable in that query — try mentioning specific skill names.'
     });
   }
+  const ranked = scoreEmployees(getAllEmployeesWithSkills(), skills);
+  sendJson(res, 200, { parsedSkills: skills, results: ranked, usedFallback, note });
 });
 
 // ---- Reports ----

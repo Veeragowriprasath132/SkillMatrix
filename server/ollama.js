@@ -51,4 +51,46 @@ Staffing request: "${query}"`;
   return skills;
 }
 
-module.exports = { parseStaffingQuery, OLLAMA_HOST, OLLAMA_MODEL };
+module.exports = { parseStaffingQuery, OLLAMA_HOST, OLLAMA_MODEL, parseStaffingQueryFallback };
+
+// ---------------------------------------------------------------------------
+// Fallback parser — no external service, no installation required.
+// Used automatically when Ollama isn't reachable (e.g. locked-down company
+// laptops that can't install new software). It's simple keyword matching, not
+// a real language model, so it won't handle everything an LLM would — but it
+// covers the common case: skill names from the taxonomy mentioned in the
+// query, plus seniority words mapped to proficiency levels.
+// ---------------------------------------------------------------------------
+const LEVEL_WORDS = {
+  expert: 'Expert', principal: 'Expert', lead: 'Expert', '10x': 'Expert',
+  senior: 'Advanced', advanced: 'Advanced', experienced: 'Advanced',
+  intermediate: 'Intermediate', mid: 'Intermediate', 'mid-level': 'Intermediate',
+  junior: 'Beginner', beginner: 'Beginner', entry: 'Beginner', 'entry-level': 'Beginner', trainee: 'Beginner'
+};
+
+function detectGlobalLevel(queryLower) {
+  for (const word of Object.keys(LEVEL_WORDS)) {
+    if (queryLower.includes(word)) return LEVEL_WORDS[word];
+  }
+  return 'Intermediate';
+}
+
+function parseStaffingQueryFallback(query, knownSkillNames = []) {
+  const queryLower = query.toLowerCase();
+  const globalLevel = detectGlobalLevel(queryLower);
+  const skills = [];
+  const seen = new Set();
+
+  // Match known taxonomy skill names that appear as whole words/phrases in the query.
+  for (const name of knownSkillNames) {
+    const nameLower = name.toLowerCase();
+    if (!nameLower) continue;
+    const escaped = nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, 'i');
+    if (re.test(queryLower) && !seen.has(nameLower)) {
+      seen.add(nameLower);
+      skills.push({ name, level: globalLevel });
+    }
+  }
+  return skills;
+}

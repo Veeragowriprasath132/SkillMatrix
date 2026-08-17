@@ -241,7 +241,8 @@
   <div class="view" id="view-search">
     <div class="view-header"><h1>Search &amp; Match</h1><p>Describe what a project needs in plain English, or pick exact skills and levels.</p></div>
     <div class="panel">
-      <h3>Ask in plain English (uses a local Ollama model)</h3>
+      <h3>Ask in plain English</h3>
+      <p style="color:var(--muted);font-size:12px;margin-top:-8px;">Uses a local Ollama model if you have one running; otherwise falls back to matching skill names and seniority words directly — no installation required either way.</p>
       <div class="ai-search-box">
         <input type="text" id="aiQuery" placeholder="e.g. I need a senior AWS person who also knows Kubernetes">
         <button class="btn" id="aiSearchBtn" style="white-space:nowrap;">Ask</button>
@@ -669,15 +670,19 @@ document.getElementById("aiSearchBtn").addEventListener("click", async ()=>{
   const query = document.getElementById("aiQuery").value.trim();
   const errEl = document.getElementById("aiError");
   const parsedEl = document.getElementById("aiParsed");
-  errEl.textContent = ""; parsedEl.innerHTML = "";
+  errEl.textContent = ""; errEl.style.color = "var(--muted)"; parsedEl.innerHTML = "";
   if(!query) return;
   const btn = document.getElementById("aiSearchBtn");
   btn.disabled = true; btn.textContent = "Thinking…";
   try{
-    const { parsedSkills, results } = await api('POST', '/api/search/ai', { query });
-    parsedEl.innerHTML = "Interpreted as: " + (parsedSkills||[]).map(s=>`<span class="parsed-chip">${escapeHtml(s.name)} · ${s.level}+</span>`).join("") || '<span class="empty">Nothing recognizable.</span>';
+    const { parsedSkills, results, usedFallback, note } = await api('POST', '/api/search/ai', { query });
+    parsedEl.innerHTML = (parsedSkills && parsedSkills.length)
+      ? "Interpreted as: " + parsedSkills.map(s=>`<span class="parsed-chip">${escapeHtml(s.name)} · ${s.level}+</span>`).join("")
+      : '<span class="empty">Nothing recognizable.</span>';
+    if(note){ errEl.textContent = (usedFallback ? "ℹ️ " : "") + note; }
     renderMatchResults(results);
   }catch(e){
+    errEl.style.color = "var(--l4)";
     errEl.textContent = e.message;
   }finally{
     btn.disabled = false; btn.textContent = "Ask";

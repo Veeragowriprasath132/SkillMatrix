@@ -1,0 +1,4 @@
+server/data/*.db
+server/data/*.db-journal
+.DS_Store
+node_modules/

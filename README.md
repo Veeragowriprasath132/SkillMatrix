@@ -31,19 +31,48 @@ node server/server.js
 
 Open **http://localhost:3000** in your browser. That's it — no build step, no
 `npm install`. The SQLite database file is created automatically at
-`server/data/skillmatrix.db` on first run, seeded with 5 sample employees and a
-starter skill taxonomy.
+`server/data/skillmatrix.db` on first run, and **starts completely empty** —
+no sample employees, no pre-filled taxonomy. Good for a live demo where you
+want to build the data up from nothing in front of an audience.
 
 To use a different port: `PORT=4000 node server/server.js`
 
-## Enabling AI-powered search (optional)
+### Optional sample data (for rehearsing, not the live demo itself)
+
+If you want to practice with realistic data before doing the real demo:
+```bash
+npm run seed
+```
+This adds 5 sample employees and a starter skill taxonomy — but only if the
+database is currently empty (it refuses to seed on top of existing data, to
+avoid accidental duplicates).
+
+To wipe everything and go back to a blank slate:
+```bash
+npm run reset-db
+```
+This deletes `server/data/skillmatrix.db` entirely — the next time you start
+the server, a fresh empty database is created automatically.
+
+## Natural-language search (works with or without Ollama)
+
+The "Ask in plain English" box in Search & Match tries a local
+[Ollama](https://ollama.com) model first for the best parsing. If Ollama isn't
+installed or reachable — for example, on a company laptop where installing new
+software is restricted — it **automatically falls back to a simple built-in
+keyword matcher**, no installation required either way:
+
+- Matches skill names straight from your taxonomy that appear in the query
+- Recognizes seniority words (senior/expert/lead → Advanced or Expert,
+  junior/entry/beginner → Beginner, mid/intermediate → Intermediate)
+- Tells you in the UI which mode was used, so it's never a silent guess
+
+If you *do* want the smarter, full-model version and can install software:
 
 1. Install Ollama from https://ollama.com
 2. Pull a small model: `ollama pull llama3.2`
 3. Make sure Ollama is running (it usually starts automatically; otherwise run
    `ollama serve`)
-4. In the app, go to **Search & Match** and use the "Ask in plain English" box,
-   e.g. *"I need a senior AWS person who also knows Kubernetes"*
 
 If you use a different model or host, set environment variables before
 starting the server:

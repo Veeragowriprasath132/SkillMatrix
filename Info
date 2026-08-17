@@ -1,0 +1,8 @@
+npm run seed        # adds sample data for practice
+npm run reset-db     # wipes it clean again before the real thing
+
+del server\data\skillmatrix.db  #delete the server dB
+
+node server/server.js   #starting the app
+
+
