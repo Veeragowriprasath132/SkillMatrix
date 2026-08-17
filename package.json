@@ -1,0 +1,12 @@
+{
+  "name": "skill-matrix-app",
+  "version": "2.0.0",
+  "description": "Employee Skill Matrix Management System — Node.js + SQLite backend, REST API, and a frontend with optional Ollama-powered natural language search.",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
